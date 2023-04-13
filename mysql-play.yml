@@ -1,0 +1,40 @@
+---
+- hosts: ehd
+  gather_facts: False
+  serial: 1
+  become: yes
+  tasks:
+
+  - name: Ensure group "mysqld_exporter" exists
+    ansible.builtin.group:
+      name: mysqld_exporter
+      state: present
+      system: yes
+
+  - name: Add the user 'mysqld_exporter' with a bash /bin/false, appending the group 'mysqld_exporter' to the user's groups
+    ansible.builtin.user:
+      name: mysqld_exporter
+      shell: /bin/false
+      groups: mysqld_exporter
+
+  - name: 1 copying files
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: "{{item.mode}}"
+      owner: "{{item.owner}}"
+      group: "{{item.group}}"
+    with_items:
+      - {src: './mysqld_exporter.service', dest: '/etc/systemd/system/', mode: '0644', owner: 'root', group: 'root'}
+      - {src: './.my.cnf',                 dest: '/etc/.my.cnf', mode: '0751', owner: 'root', group: 'mysqld_exporter'}
+      - {src: './mysqld_exporter-0.12.1.linux-amd64/mysqld_exporter', dest: '/usr/local/bin/mysqld_exporter', mode: '0751', owner: 'root', group: 'root'}
+
+  - name: 2 daemon-reload
+    systemd:
+      daemon_reload: yes
+
+  - name: 3 enable and start
+    systemd:
+      name: mysqld_exporter
+      state: started
+      enabled: yes

@@ -1,0 +1,43 @@
+https://techexpert.tips/ru/prometheus-ru/%D0%BF%D1%80%D0%BE%D0%BC%D0%B5%D1%82%D0%B5%D0%B9-%D0%BC%D0%BE%D0%BD%D0%B8%D1%82%D0%BE%D1%80%D0%B8%D0%BD%D0%B3-mysql-%D0%BD%D0%B0-ubuntu-linux/
+
+mkdir /downloads/mysql_exporter -p
+cd /downlaods/mysql_exporter
+wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.11.0/mysqld_exporter-0.11.0.linux-amd64.tar.gz
+tar -zxvf mysqld_exporter-0.11.0.linux-amd64.tar.gz
+install mysqld_exporter-0.11.0.linux-amd64/mysqld_exporter /usr/local/bin/
+
+groupadd --system mysqld_exporter
+useradd -s /bin/false -r -g mysqld_exporter mysqld_exporter
+mysql -u root -p
+
+CREATE USER 'mysqld_exporter'@'localhost' IDENTIFIED BY 'kamisama123' WITH MAX_USER_CONNECTIONS 3;
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'mysqld_exporter'@'localhost';
+quit;
+
+nano /etc/.my.cnf
+[client]
+
+user=mysqld_exporter
+password=kamisama123
+
+chown root:mysqld_exporter /etc/.my.cnf
+nano /etc/systemd/system/mysqld_exporter.service
+
+[Unit]
+Description=Prometheus MySQL Exporter
+Wants=network.target
+After=network.target
+
+[Service]
+User=mysqld_exporter
+Group=mysqld_exporter
+Type=simple
+ExecStart=/usr/local/bin/mysqld_exporter --config.my-cnf /etc/.my.cnf
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+systemctl daemon-reload
+systemctl enable mysqld_exporter
+systemctl start mysqld_exporter
